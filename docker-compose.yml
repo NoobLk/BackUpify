@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  backup_manager:
+    build: .
+    volumes:
+      - ./data:/etc/backup_master  # Persist backups
+      - ./config:/app/backup_details.cfg:ro  # Configuration
+    environment:
+      - NAME=BackupManager
+    restart: unless-stopped
