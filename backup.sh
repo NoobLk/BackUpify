@@ -11,14 +11,14 @@ backup_dir="./backups/$SITE_NAME/"
 
 
 function run_backup() {
-    mkdir -p "$backup_path"
+    mkdir -p "$backup_dir/$timestamp"
 
-    Uncomment below to enable database backup
     echo "Backing up database..."
     if [[ "$INCLUDE_DB" == "yes" ]]; then
 
     # Backup MySQL database
-        mysqldump -h "$DB_HOST" -P "$DB_PORT" --no-tablespaces -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$backup_dir/db.sql"
+        mysqldump -h "$DB_HOST" -P "$DB_PORT" --no-tablespaces -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$backup_dir/$timestamp/db.sql"
+        echo "Database backup dir is = $backup_dir"
     else
         echo "Database backup is disabled for this configuration."
     fi
