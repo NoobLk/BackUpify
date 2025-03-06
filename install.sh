@@ -106,16 +106,10 @@ install_process() {
     schedule_backup "$project_dir"
 }
 
-# Ensure the script runs for both directories
-echo "Please enter the first project directory path:"
-read -p "Enter path for Project 1: " project1
-echo "Please enter the second project directory path:"
-read -p "Enter path for Project 2: " project2
+# Ensure the script runs for both directories (auto-detect current path)
+current_directory=$(pwd)
 
-echo "🔄 Installing and setting up Project 1 in $project1..."
-install_process "$project1"
+echo "🔄 Installing and setting up Project 1 in $current_directory..."
+install_process "$current_directory"
 
-echo "🔄 Installing and setting up Project 2 in $project2..."
-install_process "$project2"
-
-echo "🎉 Installation and setup completed successfully for both projects!"
+echo "🎉 Installation and setup completed successfully for $current_directory!"
