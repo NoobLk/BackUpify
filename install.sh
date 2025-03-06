@@ -38,18 +38,6 @@ rename_env_file() {
     fi
 }
 
-# Install required PHP/Node dependencies
-install_php_dependencies() {
-    local project_dir="$1"
-    echo "🔄 Installing PHP dependencies in $project_dir..."
-    cd "$project_dir" && composer install && cd ..
-}
-
-install_node_dependencies() {
-    local project_dir="$1"
-    echo "🔄 Installing Node.js dependencies in $project_dir..."
-    cd "$project_dir" && npm install && cd ..
-}
 
 # Ask user for backup schedule and configure cron job
 schedule_backup() {
