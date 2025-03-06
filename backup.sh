@@ -8,32 +8,81 @@ set +a
 # Get current timestamp
 timestamp=$(date +%Y_%m_%d_%H:%M:%S)
 backup_dir="./backups/$SITE_NAME/"
+folderststus_fail_message="Warning: Site source directory is either missing or empty. Backup Not Going to Continue"
+dbststus_fail_message="MySQL Access not Working. Backup Not Going to Continue"
+
+
+
+function environment_check() {
+    # Define failure messages (optional, if not already defined)
+    folderststus_fail_message="Backup failed: WordPress directory is missing or empty."
+    mysqlststus_fail_message="Backup failed: MySQL is not accessible. in site "
+
+    # Check if MySQL is running
+    if mysqladmin -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" ping &>/dev/null; then
+        echo "MySQL Access Working, proceeding with backup."
+        dbststus="ok"
+    else
+        dbststus="false"
+        # Send notification via Telegram
+        for CHAT_ID in "${CHAT_IDS[@]}"; do
+            curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d "chat_id=$CHAT_ID&parse_mode=Markdown&text=$mysqlststus_fail_message in site = $SITE_NAME"
+        done
+        echo "MySQL Access not Working. Backup Not Going to Continue."
+        return 1  # Exit the function if MySQL is not accessible
+    fi
+
+    # Check if WP_DIR exists and is not empty
+    if [ -d "$WP_DIR" ] && [ "$(ls -A "$WP_DIR")" ]; then
+        echo "WordPress directory $WP_DIR is present and not empty."
+        folderststus="ok"
+    else
+        echo "Warning: WordPress directory $WP_DIR is either missing or empty."
+        folderststus="false"
+        # Send notification via Telegram
+        for CHAT_ID in "${CHAT_IDS[@]}"; do
+            curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d "chat_id=$CHAT_ID&parse_mode=Markdown&text=$folderststus_fail_message in site = $SITE_NAME"
+        done
+        return 1  # Exit the function if WP_DIR is invalid
+    fi
+}
+
 
 function run_backup() {
-    mkdir -p "$backup_dir/$timestamp"
+    # Check environment status
+    environment_check
 
-    echo "Backing up database..."
-    if [[ "$INCLUDE_DB" == "yes" ]]; then
-        # Backup MySQL database
-        mysqldump -h "$DB_HOST" -P "$DB_PORT" --no-tablespaces -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$backup_dir/$timestamp/db.sql"
-        echo "Database backup dir is = $backup_dir"
+    # Check if dbststus is 'ok'
+    if [ "$dbststus" == "ok" ] && [ "$folderststus" == "ok" ]; then
+        # Create backup directory with timestamp
+        mkdir -p "$backup_dir/$timestamp"
+
+        echo "Backing up database..."
+        if [[ "$INCLUDE_DB" == "yes" ]]; then
+            # Backup MySQL database
+            mysqldump -h "$DB_HOST" -P "$DB_PORT" --no-tablespaces -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" > "$backup_dir/$timestamp/db.sql"
+            echo "Database backup dir is = $backup_dir"
+        else
+            echo "Database backup is disabled for this configuration."
+        fi
+
+        echo "Backing up $SITE_NAME files..."
+        if [ -d "$WP_DIR" ]; then
+            tar -czf "$backup_dir/$timestamp/wp_files.tar.gz" -C "$WP_DIR" .
+            echo "File backup successful."
+        else
+            echo "Warning: The WordPress directory does not exist: $WP_DIR"
+        fi
+
+        echo "Backup for $SITE_NAME completed at $backup_dir"
+
+        # Remove old backups if the number exceeds MAX_BACKUP_COUNT
+        cleanup_backups
     else
-        echo "Database backup is disabled for this configuration."
+        echo "Database status is not 'ok', backup skipped."
     fi
-
-    echo "Backing up $SITE_NAME files..."
-    if [ -d "$WP_DIR" ]; then
-        tar -czf "$backup_dir/$timestamp/wp_files.tar.gz" -C "$WP_DIR" .
-        echo "File backup successful."
-    else
-        echo "Warning: The WordPress directory does not exist: $WP_DIR"
-    fi
-
-    echo "Backup for $SITE_NAME completed at $backup_dir"
-
-    # Remove old backups if the number exceeds MAX_BACKUP_COUNT
-    cleanup_backups
-    send_notification
 }
 
 # Function to clean up old backups
@@ -45,6 +94,8 @@ cleanup_backups() {
             rm -rf "${BACKUPS[$i]}"
         done
     fi
+
+    send_notification
 }
 
 # Function to restore backup
