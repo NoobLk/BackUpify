@@ -1,19 +1,5 @@
 #!/bin/bash
 
-# Rename .env_sample to .env
-rename_env_file() {
-    local project_dir="$1"
-    echo "🔄 Renaming .env_sample to .env in $project_dir..."
-
-    if [ -f "$project_dir/.env_sample" ]; then
-        cp "$project_dir/.env_sample" "$project_dir/.env"
-    else
-        echo "❌ .env_sample file not found in $project_dir!"
-        exit 1
-    fi
-}
-
-
 # Ask user for backup schedule and configure cron job
 schedule_backup() {
     local project_dir="$1"
@@ -49,8 +35,6 @@ schedule_backup() {
 # Main installation process
 install_process() {
     local project_dir="$1"
-
-    rename_env_file "$project_dir"
     schedule_backup "$project_dir"
 }
 
