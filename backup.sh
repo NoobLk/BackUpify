@@ -81,7 +81,7 @@ function run_backup() {
         # Remove old backups if the number exceeds MAX_BACKUP_COUNT
         cleanup_backups
     else
-        echo "Database status is not 'ok', backup skipped."
+        echo "Backup Fail"
     fi
 }
 
@@ -100,31 +100,68 @@ cleanup_backups() {
 
 # Function to restore backup
 restore_backup() {
-    if [ -z "$1" ]; then
-        echo "Usage: $0 restore <YYYY-MM-DD_HH-MM-SS>"
-        exit 1
+
+    # Check environment status
+    environment_check
+
+    # Check if both dbststus and folderststus are 'ok'
+    if [ "$dbststus" == "ok" ] && [ "$folderststus" == "ok" ]; then
+
+        if [ -z "$1" ]; then
+            echo "Usage: $0 restore <YYYY-MM-DD_HH-MM-SS>"
+            exit 1
+        fi
+
+        BACKUP_PATH="$backup_dir/$1"
+
+        if [ ! -d "$BACKUP_PATH" ]; then
+            echo "Backup not found: $BACKUP_PATH"
+            exit 1
+        fi
+
+        echo "Restoring backup from $BACKUP_PATH..."
+
+        # Check if backup files exist
+        if [ ! -f "$BACKUP_PATH/wp_files.tar.gz" ]; then
+            echo "WordPress file backup not found: $BACKUP_PATH/wp_files.tar.gz"
+            exit 1
+        fi
+
+        if [ ! -f "$BACKUP_PATH/db.sql" ]; then
+            echo "Database backup not found: $BACKUP_PATH/db.sql"
+            exit 1
+        fi
+
+        # Restore WordPress files
+        echo "Restoring WordPress files..."
+        tar -xzf "$BACKUP_PATH/wp_files.tar.gz" -C "$WP_DIR" --strip-components=1
+        if [ $? -ne 0 ]; then
+            echo "Failed to restore WordPress files."
+            exit 1
+        fi
+
+        # Drop and recreate the database
+        echo "Restoring MySQL database..."
+        mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" -e "DROP DATABASE IF EXISTS $DB_NAME; CREATE DATABASE $DB_NAME;"
+        if [ $? -ne 0 ]; then
+            echo "Failed to drop and recreate the database."
+            exit 1
+        fi
+
+        # Restore MySQL database
+        mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "$BACKUP_PATH/db.sql"
+        if [ $? -ne 0 ]; then
+            echo "Failed to restore the database."
+            exit 1
+        fi
+
+        echo "Restore completed successfully."
+
+    else
+        echo "Restore Fail"
     fi
-
-    BACKUP_PATH="$backup_dir/$1"
-
-    if [ ! -d "$BACKUP_PATH" ]; then
-        echo "Backup not found: $BACKUP_PATH"
-        exit 1
-    fi
-
-    echo "Restoring backup from $BACKUP_PATH..."
-
-    # Restore WordPress files
-    tar -xzf "$BACKUP_PATH/wp_files.tar.gz" -C "$WP_DIR" --strip-components=1
-
-    # Drop and recreate the database
-    mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" -e "DROP DATABASE IF EXISTS $DB_NAME; CREATE DATABASE $DB_NAME;"
-
-    # Restore MySQL database
-    mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "$BACKUP_PATH/db.sql"
-
-    echo "Restore completed."
 }
+
 
 
 list_backups() {
