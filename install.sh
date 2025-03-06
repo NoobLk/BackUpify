@@ -1,30 +1,5 @@
 #!/bin/bash
 
-# Function to check and install dependencies
-install_dependencies() {
-    echo "🔄 Checking and installing dependencies..."
-
-    # Check if git is installed
-    if ! command -v git &> /dev/null; then
-        echo "❌ git is not installed. Installing..."
-        sudo apt update && sudo apt install -y git
-    fi
-
-}
-
-# Clone the repository if it doesn't exist
-clone_repo() {
-    local project_dir="$1"
-    echo "🔄 Cloning the repository into $project_dir..."
-
-    if [ ! -d "$project_dir" ]; then
-        git clone https://github.com/NoobLk/BackUpify.git "$project_dir"
-    else
-        echo "✅ Repository already exists in $project_dir. Pulling latest changes..."
-        cd "$project_dir" && git pull origin main && cd ..
-    fi
-}
-
 # Rename .env_sample to .env
 rename_env_file() {
     local project_dir="$1"
@@ -75,11 +50,7 @@ schedule_backup() {
 install_process() {
     local project_dir="$1"
 
-    install_dependencies
-    clone_repo "$project_dir"
     rename_env_file "$project_dir"
-    install_php_dependencies "$project_dir"
-    install_node_dependencies "$project_dir"
     schedule_backup "$project_dir"
 }
 
