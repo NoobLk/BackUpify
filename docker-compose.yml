@@ -17,6 +17,6 @@ services:
       - BOT_TOKEN=7922034172:AAH2_elDK8LSd-IS5RqjZhMLXfIqVWENUBM
       - CHAT_IDS=5139800235
     volumes:
-      - /opt/www/wordpress:/opt/www/html
-      - ./backups:/backups
+      - /home/wladmin/Documents/GitHub/wordpress/opt/www/wordpress:/opt/www/html
+      - ./backups:/opt/www/backups
     restart: unless-stopped

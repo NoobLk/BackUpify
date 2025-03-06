@@ -13,6 +13,7 @@ RUN apt-get update && \
     mysql-client \
     cron \
     bash \
+    nano \
     curl \
     sudo \
     && rm -rf /var/lib/apt/lists/*

@@ -2,7 +2,7 @@
 
 # Get the backup schedule from the environment variable
 backup_schedule="$BACKUP_SCHEDULE"
-project_dir="$PROJECT_DIR"
+project_dir="/opt/www/"
 
 # Set the cron schedule based on the environment variable
 case $backup_schedule in
