@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Function to set the system timezone to Asia/Colombo
+set_timezone() {
+    echo "🌍 Setting the system timezone to Asia/Colombo..."
+    sudo timedatectl set-timezone Asia/Colombo
+    echo "✅ Timezone set to Asia/Colombo."
+}
+
 # Ask user for backup schedule and configure cron job
 schedule_backup() {
     local project_dir="$1"
@@ -35,6 +42,7 @@ schedule_backup() {
 # Main installation process
 install_process() {
     local project_dir="$1"
+    set_timezone    # Call the function to set the timezone
     schedule_backup "$project_dir"
 }
 
