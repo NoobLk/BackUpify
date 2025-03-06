@@ -18,20 +18,24 @@ function environment_check() {
     folderststus_fail_message="Backup failed: WordPress directory is missing or empty."
     mysqlststus_fail_message="Backup failed: MySQL is not accessible. in site "
 
-    # Check if MySQL is running
-    if mysqladmin -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" ping &>/dev/null; then
-        echo "MySQL Access Working, proceeding with backup."
+     if [[ "$INCLUDE_DB" == "yes" ]]; then
+        # Check if MySQL is running
+        if mysqladmin -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" ping &>/dev/null; then
+            echo "MySQL Access Working, proceeding with backup."
+            dbststus="ok"
+        else
+            dbststus="false"
+            # Send notification via Telegram
+            for CHAT_ID in "${CHAT_IDS[@]}"; do
+                curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+                -d "chat_id=$CHAT_ID&parse_mode=Markdown&text=$mysqlststus_fail_message in site = $SITE_NAME"
+            done
+            echo "MySQL Access not Working. Backup Not Going to Continue."
+            return 1  # Exit the function if MySQL is not accessible
+        fi
+     else
         dbststus="ok"
-    else
-        dbststus="false"
-        # Send notification via Telegram
-        for CHAT_ID in "${CHAT_IDS[@]}"; do
-            curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
-            -d "chat_id=$CHAT_ID&parse_mode=Markdown&text=$mysqlststus_fail_message in site = $SITE_NAME"
-        done
-        echo "MySQL Access not Working. Backup Not Going to Continue."
-        return 1  # Exit the function if MySQL is not accessible
-    fi
+     fi   
 
     # Check if WP_DIR exists and is not empty
     if [ -d "$WP_DIR" ] && [ "$(ls -A "$WP_DIR")" ]; then
@@ -177,28 +181,37 @@ list_backups() {
 }
 
 send_notification() {
+    # Check if database backup is enabled
     if [[ "$INCLUDE_DB" == "yes" ]]; then
         db_backup_state='✅ Yes'
     else
         db_backup_state='❌ No'
     fi
 
+    # Get disk space details
+    disk_space=$(df -h "$backup_dir" | awk 'NR==2 {print $2}')  # Total disk space
+    free_disk_space=$(df -h "$backup_dir" | awk 'NR==2 {print $4}')  # Free disk space
+
+    # Prepare the message to send
     MESSAGE="*======= Backup Notification =======* 
 
 🔹 *Backup Site Name*: \`$SITE_NAME\`
 🔹 *Database Backup*: $db_backup_state
 🔹 *Backup Path*: \`$backup_dir\`
 🔹 *Backup Time Stamp*: \`$timestamp\`
-🔹 *Max Backups Allowd*: \`$MAX_BACKUPS\`
+🔹 *Max Backups Allowed*: \`$MAX_BACKUPS\`
+🔹 *Free Disk Space*: \`$free_disk_space\` / \`$disk_space\`
 
 *🔔 Backup Completed Successfully!*"
 
+    # Send the message to all chat IDs
     for CHAT_ID in "${CHAT_IDS[@]}"
     do
         curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
         -d "chat_id=$CHAT_ID&parse_mode=Markdown&text=$MESSAGE"
     done
 }
+
 
 
 
