@@ -10,17 +10,6 @@ install_dependencies() {
         sudo apt update && sudo apt install -y git
     fi
 
-    # Check if Node.js is installed
-    if ! command -v node &> /dev/null; then
-        echo "❌ Node.js is not installed. Installing..."
-        sudo apt install -y nodejs npm
-    fi
-
-    # Check if Composer is installed
-    if ! command -v composer &> /dev/null; then
-        echo "❌ Composer is not installed. Installing..."
-        sudo apt install -y composer
-    fi
 }
 
 # Clone the repository if it doesn't exist
